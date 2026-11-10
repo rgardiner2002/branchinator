@@ -18,8 +18,8 @@ with sync_playwright() as p:
         assert result['end']==(int(net.network_address)+250 if net.prefixlen==24 else int(net.broadcast_address)-1)
     for invalid in ['192.168.10.80/26','256.0.0.0/24','10.0.0.0/31','1.2.3.4','1.2.3.4/32']:
         assert page.evaluate('(c)=>{try{subnet(c);return false}catch(e){return true}}',invalid)
-    page.locator('#site').fill('Dudley Office')
-    page.locator('#prefix').fill('uk-du')
+    page.locator('#site').fill('Example Office')
+    page.locator('#prefix').fill('uk-xx')
     page.locator('#core').fill('2')
     page.locator('#access').fill('5')
     page.locator('[data-field=cidr]').fill('192.168.10.64/27')
@@ -28,9 +28,9 @@ with sync_playwright() as p:
     page.locator('#build').click()
     rows=page.locator('#devices tr')
     assert rows.count()==7
-    assert rows.nth(0).locator('td').nth(0).inner_text()=='uk-du-coresw01'
-    assert rows.nth(2).locator('td').nth(0).inner_text()=='uk-du-accsw01'
-    assert rows.nth(6).locator('td').nth(0).inner_text()=='uk-du-accsw05'
+    assert rows.nth(0).locator('td').nth(0).inner_text()=='uk-xx-coresw01'
+    assert rows.nth(2).locator('td').nth(0).inner_text()=='uk-xx-accsw01'
+    assert rows.nth(6).locator('td').nth(0).inner_text()=='uk-xx-accsw05'
     for i in range(7):
         rows.nth(i).locator('input').nth(0).fill(f'SERIAL{i+1}')
         rows.nth(i).locator('input').nth(1).fill(f'00:11:22:33:44:{i+1:02x}')
@@ -45,7 +45,7 @@ with sync_playwright() as p:
     records=list(csv.reader(io.StringIO(data.decode())))
     example=(ROOT/'example.csv').read_text().splitlines()[0]
     assert ','.join(records[0])==example
-    assert records[1]==['SERIAL1','00:11:22:33:44:01','Y','192.168.10.65','uk-du-coresw01','192.168.10.66/27']
+    assert records[1]==['SERIAL1','00:11:22:33:44:01','Y','192.168.10.65','uk-xx-coresw01','192.168.10.66/27']
     assert records[-1][-1]=='192.168.10.72/27'
     assert len(records)==8
     dhcp=list(csv.DictReader(io.StringIO((ROOT/'tested-dhcp-scopes.csv').read_text())))
