@@ -52,6 +52,36 @@ with sync_playwright() as p:
     assert dhcp[0]['pool_end']=='192.168.10.94'
     assert dhcp[1]['pool_start']=='192.168.20.100' and dhcp[1]['pool_end']=='192.168.20.250'
     page.screenshot(path=str(ROOT/'preview.png'),full_page=True)
+    # Shareable URL round-trip: restore a complete configuration in a fresh tab.
+    shared_url=page.url
+    assert '#cfg=' in shared_url
+    shared=browser.new_page(viewport={'width':1440,'height':1100},accept_downloads=True)
+    shared.on('pageerror',lambda e:errors.append(str(e)))
+    shared.goto(shared_url)
+    assert shared.locator('#site').input_value()=='Example Office'
+    assert shared.locator('#prefix').input_value()=='uk-xx'
+    assert shared.locator('#core').input_value()=='2'
+    assert shared.locator('#access').input_value()=='5'
+    assert shared.locator('[data-field=cidr]').nth(0).input_value()=='192.168.10.64/27'
+    assert shared.locator('[data-field=cidr]').nth(1).input_value()=='192.168.20.0/24'
+    assert shared.locator('input[name=mgmt]').nth(0).is_checked()
+    assert shared.locator('#devices tr').count()==7
+    assert shared.locator('#devices tr').nth(0).locator('input').nth(0).input_value()=='SERIAL1'
+    assert shared.locator('#devices tr').nth(6).locator('input').nth(1).input_value()=='00:11:22:33:44:07'
+    shared.get_by_role('button',name='Calculate & review').click()
+    assert shared.locator('#varsDownload').is_enabled()
+    shared.locator('#site').fill('A & B / 100%')
+    updated_url=shared.url
+    assert updated_url!=shared_url
+    shared.reload()
+    assert shared.locator('#site').input_value()=='A & B / 100%'
+    assert shared.locator('#devices tr').count()==7
+    shared.locator('#scopes tr').nth(1).get_by_role('button',name='Remove').click()
+    shared.reload()
+    assert shared.locator('#scopes tr').count()==1
+    shared.goto(shared_url.split('#')[0]+'#cfg=%7Bbad')
+    assert 'invalid or unsupported' in shared.locator('#shareStatus').inner_text()
+    shared.close()
     # Dirty edits disable exports, rebuilding preserves entered identities.
     rows.nth(0).locator('input').nth(0).fill('UPDATED1')
     assert page.locator('#varsDownload').is_disabled()
