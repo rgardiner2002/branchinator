@@ -36,7 +36,7 @@ with sync_playwright() as p:
         rows.nth(i).locator('input').nth(1).fill(f'00:11:22:33:44:{i+1:02x}')
     page.get_by_role('button',name='Calculate & review').click()
     assert page.locator('#varsDownload').is_enabled()
-    assert 'DHCP overlap' in page.locator('#status').inner_text()
+    assert 'Management DHCP starts at 192.168.10.73' in page.locator('#status').inner_text()
     for button,filename in [('varsDownload','tested-switch-variables.csv'),('dhcpDownload','tested-dhcp-scopes.csv')]:
         with page.expect_download() as info:page.locator('#'+button).click()
         info.value.save_as(ROOT/filename)
@@ -49,7 +49,7 @@ with sync_playwright() as p:
     assert records[-1][-1]=='192.168.10.72/27'
     assert len(records)==8
     dhcp=list(csv.DictReader(io.StringIO((ROOT/'tested-dhcp-scopes.csv').read_text())))
-    assert dhcp[0]['pool_end']=='192.168.10.94'
+    assert dhcp[0]['pool_start']=='192.168.10.73' and dhcp[0]['pool_end']=='192.168.10.94'
     assert dhcp[1]['pool_start']=='192.168.20.100' and dhcp[1]['pool_end']=='192.168.20.250'
     page.screenshot(path=str(ROOT/'preview.png'),full_page=True)
     # Shareable URL round-trip: restore a complete configuration in a fresh tab.
@@ -109,9 +109,28 @@ with sync_playwright() as p:
     page.locator('#core').fill('0');page.locator('#access').fill('0')
     page.get_by_role('button',name='Calculate & review').click()
     assert page.locator('#dhcpDownload').is_enabled() and page.locator('#varsDownload').is_disabled()
+    # Management /24 preserves the normal +100 floor.
+    page.locator('[data-field=cidr]').nth(0).fill('192.168.10.0/24')
+    page.locator('#core').fill('2')
+    page.get_by_role('button',name='Calculate & review').click()
+    assert page.evaluate('review.dhcp[0][7]')=='192.168.10.100'
+    # Moving past +100 when switches occupy that range.
+    page.locator('#core').fill('100')
+    page.get_by_role('button',name='Calculate & review').click()
+    assert page.evaluate('review.dhcp[0][7]')=='192.168.10.102'
+    # A /30 with one switch leaves no DHCP pool, but switch export still works.
+    page.locator('[data-field=cidr]').nth(0).fill('192.168.10.64/30')
+    page.locator('#core').fill('1')
+    page.locator('#build').click()
+    rows.nth(0).locator('input').nth(0).fill('TEST1')
+    rows.nth(0).locator('input').nth(1).fill('00:11:22:33:44:01')
+    page.get_by_role('button',name='Calculate & review').click()
+    assert 'no DHCP addresses remain' in page.locator('#status').inner_text()
+    assert page.locator('#dhcpDownload').is_disabled()
+    assert page.locator('#varsDownload').is_enabled()
     # Mobile layout contained in viewport (tables scroll internally).
     page.set_viewport_size({'width':390,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     assert not errors, errors
-    print(json.dumps({'result':'PASS','subnet_cases':7,'invalid_subnets':5,'exported_switches':7,'exact_example_header':True,'CRLF':True,'download_tests':2,'browser_errors':errors,'checks':['core/access zero padding','shared IP sequence','CIDR preservation','DHCP /24 special range','overlap warnings','dirty export invalidation','identity preservation','duplicate identity blocking','subnet overlap blocking','DHCP only','mobile width','hosted project URL' if os.environ.get('PLANNER_TEST_URL') else 'offline file URL']},indent=2))
+    print(json.dumps({'result':'PASS','subnet_cases':7,'invalid_subnets':5,'exported_switches':7,'exact_example_header':True,'CRLF':True,'download_tests':2,'browser_errors':errors,'checks':['core/access zero padding','shared IP sequence','CIDR preservation','DHCP /24 special range','management DHCP excludes switch IPs','dirty export invalidation','identity preservation','duplicate identity blocking','subnet overlap blocking','DHCP only','mobile width','hosted project URL' if os.environ.get('PLANNER_TEST_URL') else 'offline file URL']},indent=2))
     browser.close()
