@@ -24,7 +24,7 @@ scope_name,vlan_type,subnet,subnet_mask,network_address,broadcast_address,defaul
 
 ## Share a configuration
 
-Use **Copy configuration link** in the header, or copy the URL from the address bar. Opening the link restores the site name, CI prefix, switch counts, VLANs, management selection and device rows. The URL fragment is not sent to the web server, but it is not encrypted and can be retained in browser history or copied by recipients. Share only with trusted recipients; large configurations may exceed some apps’ URL length limits. Offline file links only work for recipients who have the file at the corresponding path; use the hosted GitHub Pages URL for sharing between machines.
+Use the small **Copy config link** button at the top-left of the header, or copy the URL from the address bar. New links use compact, compressed URL-safe encoding; older configuration links remain supported. Opening the link restores the site name, CI prefix, switch counts, VLANs, management selection and device rows. The URL fragment is not sent to the web server, but it is not encrypted and can be retained in browser history or copied by recipients. Share only with trusted recipients; large configurations may still exceed some apps’ URL length limits. A fixed-length short link would require external storage; the current implementation remains fully browser-only. Offline file links only work for recipients who have the file at the corresponding path; use the hosted GitHub Pages URL for sharing between machines.
 
 ## Publish with GitHub Pages
 
