@@ -10,7 +10,7 @@ Open index.html in Chrome, Edge or Firefox. No server, installation or internet 
 
 Core switches receive addresses first, followed by access switches. Each naming role starts at 01; one shared IP sequence starts at gateway + 1. Hostnames: {CI Prefix}-coresw01 and {CI Prefix}-accsw01. A two-digit minimum means switch 100 uses 100, not a truncated value.
 
-Gateway = network + 1. /24 DHCP pool = network + 100 through network + 250. Other supported prefixes (/1 to /30) use gateway + 1 through broadcast - 1. /31 and /32 are rejected. Host bits and overlapping VLAN subnets are rejected. One DEVICE MGMT subnet serves all switches.
+Gateway = network + 1. /24 DHCP pool = network + 100 through network + 250. Other supported prefixes (/1 to /30) use gateway + 1 through broadcast - 1. /31 and /32 are rejected. Host bits and overlapping VLAN subnets are rejected. One DEVICE MGMT subnet serves all switches. DATA, WIRELESS and VOIP have individual start/end sliders and exact numeric offset fields, with a live address preview and Reset range. Defaults remain +100 to +250 for /24 and +2 to the last usable address for other supported prefixes. Custom ranges are saved in shared configuration links and used in CSV and formatted clipboard exports. The management pool remains automatic.
 
 Management DHCP starts at the greater of the normal pool start and the first address after the last assigned switch IP (gateway + total switch count + 1). This reserves planned switch addresses without changing other VLAN pools. If no addresses remain in the permitted pool, DHCP export is blocked, but valid switch variables can still be exported. Existing live allocations cannot be discovered by an offline page. This is a planning/export tool, not deployment automation.
 
