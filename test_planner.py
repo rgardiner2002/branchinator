@@ -37,6 +37,23 @@ with sync_playwright() as p:
     page.get_by_role('button',name='Calculate & review').click()
     assert page.locator('#varsDownload').is_enabled()
     assert 'Management DHCP starts at 192.168.10.73' in page.locator('#status').inner_text()
+    # Formatted DHCP scope text uses the calculated (switch-safe) pool.
+    expected_text = (
+        'Device Management:\nExample Office - DEVICE MGMT\n'
+        '          IPv4 network: 192.168.10.64/27\n'
+        '          Address Pool: 192.168.10.73 - 192.168.10.94\n'
+        '          Router IP: 192.168.10.65/27\n\n'
+        'Data:\nExample Office - DATA\n'
+        '          IPv4 network: 192.168.20.0/24\n'
+        '          Address Pool: 192.168.20.100 - 250\n'
+        '          Router IP: 192.168.20.1'
+    )
+    assert page.evaluate('dhcpText(review.dhcp)') == expected_text
+    page.evaluate("Object.defineProperty(navigator, 'clipboard', {configurable:true,value:{writeText:async text=>{window.copiedScopes=text;}}})")
+    page.locator('#copyDhcp').click()
+    page.wait_for_function("document.getElementById('dhcpCopyStatus').textContent === 'Copied!'")
+    assert page.evaluate('window.copiedScopes') == expected_text
+
     for button,filename in [('varsDownload','tested-switch-variables.csv'),('dhcpDownload','tested-dhcp-scopes.csv')]:
         with page.expect_download() as info:page.locator('#'+button).click()
         info.value.save_as(ROOT/filename)
