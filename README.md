@@ -17,10 +17,14 @@ IMPORTANT: For non-/24 management networks the proposed DHCP pool overlaps the s
 Variables CSV columns exactly match the supplied example, including case and order:
 _sys_serial,_sys_lan_mac,modified,_sys_default_gateway,_sys_hostname,_SYS_DATA_IP
 
-Every row has modified=Y. IPs include /prefix; gateway does not. UTF-8 without BOM, CRLF line endings, CSV quoting where needed. Blank or duplicate device identities block variables download but not a valid DHCP-only download. Changing the form disables stale downloads until recalculated. Changing switch counts/names/management subnet requires rebuilding device rows. Serial/MAC values are retained by hostname during rebuilds. Refreshing discards form data; there is no persistence or telemetry.
+Every row has modified=Y. IPs include /prefix; gateway does not. UTF-8 without BOM, CRLF line endings, CSV quoting where needed. Blank or duplicate device identities block variables download but not a valid DHCP-only download. Changing the form disables stale downloads until recalculated. Changing switch counts/names/management subnet requires rebuilding device rows. Serial/MAC values are retained by hostname during rebuilds. Form inputs and device rows are stored in the URL fragment as you edit them. Reloading or opening a copied configuration link restores the saved inputs. Recalculate to regenerate the review and CSV exports. No database or telemetry is used.
 
 DHCP CSV columns:
 scope_name,vlan_type,subnet,subnet_mask,network_address,broadcast_address,default_gateway,pool_start,pool_end
+
+## Share a configuration
+
+Use **Copy configuration link** in the header, or copy the URL from the address bar. Opening the link restores the site name, CI prefix, switch counts, VLANs, management selection and device rows. The URL fragment is not sent to the web server, but it is not encrypted and can be retained in browser history or copied by recipients. Share only with trusted recipients; large configurations may exceed some apps’ URL length limits. Offline file links only work for recipients who have the file at the corresponding path; use the hosted GitHub Pages URL for sharing between machines.
 
 ## Publish with GitHub Pages
 
@@ -35,13 +39,13 @@ scope_name,vlan_type,subnet,subnet_mask,network_address,broadcast_address,defaul
 No npm build, Python server, GitHub Actions workflow, API token or environment secrets are needed. `.nojekyll` keeps this a plain static deployment. Everything is inline in index.html, with no absolute asset paths, so repository subpaths work. The same file still opens offline.
 
 ### Privacy and visibility
-GitHub Pages is a hosted site; do not assume a private repository makes its published site private. Do not commit actual device serials, MAC addresses, network exports, credentials or production data. Visitors enter device details in their own browser; this app does not transmit or persist their form values. GitHub receives ordinary requests for the webpage. Downloads are generated in the browser. There is no login or server-side access control in this application.
+GitHub Pages is a hosted site; do not assume a private repository makes its published site private. Do not commit actual device serials, MAC addresses, network exports, credentials or production data. Visitors enter device details in their own browser; this app stores their form values in the URL fragment, not on a server. Anyone with that link can read the included values. GitHub receives ordinary requests for the webpage. Downloads are generated in the browser. There is no login or server-side access control in this application.
 
 ## Verification
 The included test_planner.py uses Playwright Chromium and Python ipaddress. Run with:
   pip install playwright
   python -m playwright install chromium
   python test_planner.py
-The supplied example.csv is included for the exact-header comparison.
+The supplied example.csv is included for the exact-header comparison. Tests also cover URL round-trip restoration, reloads, URL-safe characters, removing VLANs and malformed links.
 
 Verified offline file:// browser operation, exact example CSV header and CRLF, actual downloads, seven subnet calculations compared with Python ipaddress, invalid subnet rejection, seven-device naming/allocation, duplicate identities, form invalidation, identity preservation, subnet overlap, DHCP-only exports, mobile layout and zero page JavaScript errors.
