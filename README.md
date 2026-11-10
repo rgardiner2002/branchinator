@@ -12,7 +12,7 @@ Core switches receive addresses first, followed by access switches. Each naming 
 
 Gateway = network + 1. /24 DHCP pool = network + 100 through network + 250. Other supported prefixes (/1 to /30) use gateway + 1 through broadcast - 1. /31 and /32 are rejected. Host bits and overlapping VLAN subnets are rejected. One DEVICE MGMT subnet serves all switches.
 
-IMPORTANT: For non-/24 management networks the proposed DHCP pool overlaps the statically assigned switch addresses. The page warns but retains the original requested pool. Configure DHCP exclusions/reservations for switches, disable DHCP on DEVICE MGMT, or revise the address plan before deployment. Existing live allocations cannot be discovered by an offline page. This is a planning/export tool, not deployment automation.
+Management DHCP starts at the greater of the normal pool start and the first address after the last assigned switch IP (gateway + total switch count + 1). This reserves planned switch addresses without changing other VLAN pools. If no addresses remain in the permitted pool, DHCP export is blocked, but valid switch variables can still be exported. Existing live allocations cannot be discovered by an offline page. This is a planning/export tool, not deployment automation.
 
 Variables CSV columns exactly match the supplied example, including case and order:
 _sys_serial,_sys_lan_mac,modified,_sys_default_gateway,_sys_hostname,_SYS_DATA_IP
@@ -48,4 +48,4 @@ The included test_planner.py uses Playwright Chromium and Python ipaddress. Run 
   python test_planner.py
 The supplied example.csv is included for the exact-header comparison. Tests also cover URL round-trip restoration, reloads, URL-safe characters, removing VLANs and malformed links.
 
-Verified offline file:// browser operation, exact example CSV header and CRLF, actual downloads, seven subnet calculations compared with Python ipaddress, invalid subnet rejection, seven-device naming/allocation, duplicate identities, form invalidation, identity preservation, subnet overlap, DHCP-only exports, mobile layout and zero page JavaScript errors.
+Verified offline file:// browser operation, exact example CSV header and CRLF, actual downloads, seven subnet calculations compared with Python ipaddress, invalid subnet rejection, seven-device naming/allocation, duplicate identities, form invalidation, identity preservation, management DHCP switch exclusions, subnet overlap, DHCP-only exports, mobile layout and zero page JavaScript errors.
