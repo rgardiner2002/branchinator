@@ -145,6 +145,40 @@ with sync_playwright() as p:
     assert 'no DHCP addresses remain' in page.locator('#status').inner_text()
     assert page.locator('#dhcpDownload').is_disabled()
     assert page.locator('#varsDownload').is_enabled()
+    # Custom DHCP pools: independent ranges, URL persistence, and reset.
+    custom=browser.new_page(viewport={'width':1440,'height':1100})
+    custom.on('pageerror',lambda e:errors.append(str(e)))
+    custom.goto(shared_url.split('#')[0])
+    custom.locator('#site').fill('Example Office')
+    custom.locator('[data-field=cidr]').fill('192.168.10.64/27')
+    for vlan,cidr in [('DATA','10.31.49.0/24'),('WIRELESS','10.231.49.0/24'),('VOIP','10.131.49.0/24')]:
+        custom.locator('#add').click()
+        row=custom.locator('#scopes tr').last
+        row.locator('select').select_option(vlan)
+        row.locator('[data-field=cidr]').fill(cidr)
+        assert row.get_by_label('DHCP start offset').input_value()=='100'
+        assert row.get_by_label('DHCP end offset').input_value()=='250'
+    data_row=custom.locator('#scopes tr').nth(1)
+    data_row.get_by_label('DHCP start offset').fill('50')
+    data_row.get_by_label('DHCP start offset').press('Tab')
+    assert data_row.get_by_label('DHCP start slider').input_value()=='50'
+    wireless_row=custom.locator('#scopes tr').nth(2)
+    wireless_row.get_by_label('DHCP end slider').fill('200')
+    voip_row=custom.locator('#scopes tr').nth(3)
+    voip_row.get_by_label('DHCP start offset').fill('75')
+    voip_row.get_by_label('DHCP start offset').press('Tab')
+    custom.get_by_role('button',name='Calculate & review').click()
+    assert custom.evaluate('review.dhcp.map(r=>r.slice(7))')==[
+        ['192.168.10.66','192.168.10.94'],['10.31.49.50','10.31.49.250'],
+        ['10.231.49.100','10.231.49.200'],['10.131.49.75','10.131.49.250']]
+    assert 'Address Pool: 10.31.49.50 - 250' in custom.evaluate('dhcpText(review.dhcp)')
+    custom.reload()
+    assert custom.locator('#scopes tr').nth(1).get_by_label('DHCP start offset').input_value()=='50'
+    assert custom.locator('#scopes tr').nth(2).get_by_label('DHCP end offset').input_value()=='200'
+    assert custom.locator('#scopes tr').nth(3).get_by_label('DHCP start offset').input_value()=='75'
+    custom.locator('#scopes tr').nth(1).get_by_role('button',name='Reset range').click()
+    assert custom.locator('#scopes tr').nth(1).get_by_label('DHCP start offset').input_value()=='100'
+    custom.close()
     # Mobile layout contained in viewport (tables scroll internally).
     page.set_viewport_size({'width':390,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
