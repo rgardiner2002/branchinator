@@ -54,7 +54,9 @@ with sync_playwright() as p:
     page.screenshot(path=str(ROOT/'preview.png'),full_page=True)
     # Shareable URL round-trip: restore a complete configuration in a fresh tab.
     shared_url=page.url
-    assert '#cfg=' in shared_url
+    assert '#cfg=2' in shared_url
+    legacy_payload=page.evaluate('encodeURIComponent(JSON.stringify(snapshot()))')
+    assert len(shared_url.split('#cfg=')[1]) < len(legacy_payload)
     shared=browser.new_page(viewport={'width':1440,'height':1100},accept_downloads=True)
     shared.on('pageerror',lambda e:errors.append(str(e)))
     shared.goto(shared_url)
@@ -81,6 +83,10 @@ with sync_playwright() as p:
     assert shared.locator('#scopes tr').count()==1
     shared.goto(shared_url.split('#')[0]+'#cfg=%7Bbad')
     assert 'invalid or unsupported' in shared.locator('#shareStatus').inner_text()
+    shared.goto(shared_url.split('#')[0]+'#cfg='+legacy_payload)
+    assert shared.locator('#site').input_value()=='Example Office'
+    assert shared.locator('#devices tr').count()==7
+    assert shared.locator('#devices tr').nth(0).locator('input').nth(0).input_value()=='SERIAL1'
     shared.close()
     # Dirty edits disable exports, rebuilding preserves entered identities.
     rows.nth(0).locator('input').nth(0).fill('UPDATED1')
