@@ -34,6 +34,7 @@ with sync_playwright() as p:
     for i in range(7):
         rows.nth(i).locator('input').nth(0).fill(f'SERIAL{i+1}')
         rows.nth(i).locator('input').nth(1).fill(f'00:11:22:33:44:{i+1:02x}')
+    rows.nth(1).locator('input').nth(1).fill('AA:BB:CC:DD:EE:FF')
     page.get_by_role('button',name='Calculate & review').click()
     assert page.locator('#varsDownload').is_enabled()
     assert 'Management DHCP starts at 192.168.10.73' in page.locator('#status').inner_text()
@@ -63,6 +64,7 @@ with sync_playwright() as p:
     example=(ROOT/'example.csv').read_text().splitlines()[0]
     assert ','.join(records[0])==example
     assert records[1]==['SERIAL1','00:11:22:33:44:01','Y','192.168.10.65','uk-xx-coresw01','192.168.10.66/27']
+    assert records[2][1]=='aa:bb:cc:dd:ee:ff'
     assert records[-1][-1]=='192.168.10.72/27'
     assert len(records)==8
     dhcp=list(csv.DictReader(io.StringIO((ROOT/'tested-dhcp-scopes.csv').read_text())))
@@ -87,6 +89,7 @@ with sync_playwright() as p:
     assert shared.locator('#devices tr').count()==7
     assert shared.locator('#devices tr').nth(0).locator('input').nth(0).input_value()=='SERIAL1'
     assert shared.locator('#devices tr').nth(6).locator('input').nth(1).input_value()=='00:11:22:33:44:07'
+    assert shared.locator('#devices tr').nth(1).locator('input').nth(1).input_value()=='AA:BB:CC:DD:EE:FF'
     shared.get_by_role('button',name='Calculate & review').click()
     assert shared.locator('#varsDownload').is_enabled()
     shared.locator('#site').fill('A & B / 100%')
