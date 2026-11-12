@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Branchinator">
+  <rect width="64" height="64" rx="15" fill="#223e68"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="13.5" fill="none" stroke="#527ab5" stroke-width="3"/>
+  <path fill="#a9cdff" fill-rule="evenodd" d="M17 12h14c9 0 12 4 12 10 0 4-2 7-6 8 5 1 8 4 8 10 0 8-6 12-15 12H17V12zm9 8v7h4c4 0 5-1 5-3.5S33 20 30 20h-4zm0 15v9h5c4 0 6-1.5 6-4.5S35 35 31 35h-5z"/>
+</svg>
