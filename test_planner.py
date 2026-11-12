@@ -58,6 +58,25 @@ with sync_playwright() as p:
     for button,filename in [('varsDownload','tested-switch-variables.csv'),('dhcpDownload','tested-dhcp-scopes.csv')]:
         with page.expect_download() as info:page.locator('#'+button).click()
         info.value.save_as(ROOT/filename)
+    # Individual switch exports contain only that device and retain the exact CSV schema.
+    assert page.locator('.device-file').count()==7
+    assert page.get_by_role('button',name='Download variables CSV for uk-xx-coresw01').count()==1
+    for name,serial,mac,ip in [
+        ('uk-xx-coresw01','SERIAL1','00:11:22:33:44:01','192.168.10.66/27'),
+        ('uk-xx-coresw02','SERIAL2','aa:bb:cc:dd:ee:ff','192.168.10.67/27'),
+        ('uk-xx-accsw05','SERIAL7','00:11:22:33:44:07','192.168.10.72/27'),
+    ]:
+        with page.expect_download() as info:
+            page.get_by_role('button',name='Download variables CSV for '+name).click()
+        assert info.value.suggested_filename==name+'-variables.csv'
+        target=ROOT/('tested-'+name+'-variables.csv')
+        info.value.save_as(target)
+        raw=target.read_bytes()
+        assert b'\r\n' in raw
+        csv_rows=list(csv.reader(io.StringIO(raw.decode('utf-8'))))
+        assert len(csv_rows)==2
+        assert csv_rows[0]==(ROOT/'example.csv').read_text().splitlines()[0].split(',')
+        assert csv_rows[1]==[serial,mac,'Y','192.168.10.65',name,ip]
     data=(ROOT/'tested-switch-variables.csv').read_bytes()
     assert b'\r\n' in data
     records=list(csv.reader(io.StringIO(data.decode())))
@@ -111,6 +130,7 @@ with sync_playwright() as p:
     # Dirty edits disable exports, rebuilding preserves entered identities.
     rows.nth(0).locator('input').nth(0).fill('UPDATED1')
     assert page.locator('#varsDownload').is_disabled()
+    assert page.locator('.device-file').count()==0
     page.locator('#build').click()
     assert rows.nth(0).locator('input').nth(0).input_value()=='UPDATED1'
     # Duplicate serial validation.
@@ -222,6 +242,23 @@ with sync_playwright() as p:
     assert custom_csv[1][1]=='aa:bb:cc:dd:ee:01'
     assert custom_csv[1][-2:]==['Head office','Core, building "A"']
     assert custom_csv[2][-2:]==['Branch office','Core, building "A"']
+    # Individual CSV exports preserve custom field order, defaults and per-device overrides.
+    assert custom.locator('.device-file').count()==2
+    for name,expected in [
+        ('uk-xx-coresw01',['Head office','Core, building "A"']),
+        ('uk-xx-accsw01',['Branch office','Core, building "A"']),
+    ]:
+        with custom.expect_download() as info:
+            custom.get_by_role('button',name='Download variables CSV for '+name).click()
+        assert info.value.suggested_filename==name+'-variables.csv'
+        csv_path=ROOT/('tested-custom-'+name+'.csv')
+        info.value.save_as(csv_path)
+        dev_rows=list(csv.reader(io.StringIO(csv_path.read_text())))
+        assert len(dev_rows)==2
+        assert dev_rows[0]==custom_csv[0]
+        assert dev_rows[1][4]==name
+        assert dev_rows[1][-2:]==expected
+        assert dev_rows[1][1].islower()
     assert b'"Core, building ""A"""' in custom_file.read_bytes()
     custom_link=custom.url
     assert '#cfg=2' in custom_link
