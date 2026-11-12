@@ -182,6 +182,72 @@ with sync_playwright() as p:
     custom.locator('#scopes tr').nth(1).get_by_role('button',name='Reset range').click()
     assert custom.locator('#scopes tr').nth(1).get_by_label('DHCP start offset').input_value()=='100'
     custom.close()
+    # Custom switch variable columns: defaults, per-device override, CSV quoting, URL round-trip.
+    custom=browser.new_page(viewport={'width':1440,'height':1100},accept_downloads=True)
+    custom.on('pageerror',lambda e:errors.append(str(e)))
+    custom.goto(shared_url.split('#')[0])
+    custom.locator('#site').fill('Example Office')
+    custom.locator('#prefix').fill('uk-xx')
+    custom.locator('#core').fill('1')
+    custom.locator('#access').fill('1')
+    custom.locator('[data-field=cidr]').fill('192.168.10.64/27')
+    custom.locator('#build').click()
+    custom.locator('#addParam').click()
+    custom.get_by_label('Custom parameter name').nth(0).fill('_sys_location')
+    custom.get_by_label('Custom parameter default').nth(0).fill('Head office')
+    custom.locator('#addParam').click()
+    custom.get_by_label('Custom parameter name').nth(1).fill('_sys_tag')
+    custom.get_by_label('Custom parameter default').nth(1).fill('Core, building "A"')
+    drows=custom.locator('#devices tr')
+    assert drows.count()==2
+    assert drows.nth(0).locator('input').nth(2).input_value()=='Head office'
+    drows.nth(1).locator('input').nth(2).fill('Branch office')
+    assert drows.nth(1).locator('input').nth(3).input_value()=='Core, building "A"'
+    for i in range(2):
+        drows.nth(i).locator('input').nth(0).fill(f'CUSTOM{i+1}')
+        drows.nth(i).locator('input').nth(1).fill(f'AA:BB:CC:DD:EE:{i+1:02X}')
+    custom.locator('#build').click()
+    assert custom.locator('#devices tr').nth(1).locator('input').nth(2).input_value()=='Branch office'
+    custom.get_by_role('button',name='Calculate & review').click()
+    assert custom.locator('#varsDownload').is_enabled()
+    assert custom.evaluate('review.varsHeaders')[-2:]==['_sys_location','_sys_tag']
+    assert custom.evaluate('review.vars[0]')[-2:]==['Head office','Core, building "A"']
+    assert custom.evaluate('review.vars[1]')[-2:]==['Branch office','Core, building "A"']
+    with custom.expect_download() as info:
+        custom.locator('#varsDownload').click()
+    custom_file=ROOT/'tested-custom-variables.csv'
+    info.value.save_as(custom_file)
+    custom_csv=list(csv.reader(io.StringIO(custom_file.read_text())))
+    assert custom_csv[0][-2:]==['_sys_location','_sys_tag']
+    assert custom_csv[1][1]=='aa:bb:cc:dd:ee:01'
+    assert custom_csv[1][-2:]==['Head office','Core, building "A"']
+    assert custom_csv[2][-2:]==['Branch office','Core, building "A"']
+    assert b'"Core, building ""A"""' in custom_file.read_bytes()
+    custom_link=custom.url
+    assert '#cfg=2' in custom_link
+    restored=browser.new_page()
+    restored.on('pageerror',lambda e:errors.append(str(e)))
+    restored.goto(custom_link)
+    assert restored.get_by_label('Custom parameter name').count()==2
+    assert restored.get_by_label('Custom parameter name').nth(0).input_value()=='_sys_location'
+    assert restored.get_by_label('Custom parameter default').nth(1).input_value()=='Core, building "A"'
+    assert restored.locator('#devices tr').nth(1).locator('input').nth(2).input_value()=='Branch office'
+    restored.get_by_role('button',name='Calculate & review').click()
+    assert restored.locator('#varsDownload').is_enabled()
+    restored.get_by_label('Remove custom parameter').nth(0).click()
+    restored.reload()
+    assert restored.get_by_label('Custom parameter name').count()==1
+    assert restored.get_by_label('Custom parameter name').nth(0).input_value()=='_sys_tag'
+    restored.get_by_role('button',name='Calculate & review').click()
+    assert restored.evaluate('review.varsHeaders')[-1:] == ['_sys_tag']
+    restored.locator('#addParam').click()
+    restored.get_by_label('Custom parameter name').nth(1).fill('_SYS_TAG')
+    restored.get_by_role('button',name='Calculate & review').click()
+    assert 'duplicates an existing CSV column' in restored.locator('#status').inner_text()
+    assert restored.locator('#varsDownload').is_disabled()
+    assert restored.locator('#dhcpDownload').is_enabled()
+    restored.close()
+    custom.close()
     # Mobile layout contained in viewport (tables scroll internally).
     page.set_viewport_size({'width':390,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
